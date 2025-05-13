@@ -118,67 +118,79 @@ void NodeMap::Draw()
     }
 }
 
+// Implements Dijkstra's algorithm to find the shortest path between two nodes
 std::vector<Node*> NodeMap::DijkstrasSearch(Node* startNode, Node* endNode)
 {
+    // Safety check for null input
     if (startNode == nullptr || endNode == nullptr) {
         std::cerr << "Error: Start or End node is null." << std::endl;
         return std::vector<Node*>();
     }
 
+    // If the start and end nodes are the same, no path is needed
     if (startNode == endNode) {
-        return std::vector<Node*>(); // Return empty path if start == end
+        return std::vector<Node*>(); // Return empty path
     }
 
+    // Set starting values
     startNode->gScore = 0;
     startNode->previous = nullptr;
 
-    std::vector<Node*> openList;
-    std::vector<Node*> closedList;
+    std::vector<Node*> openList;   // Nodes to be evaluated
+    std::vector<Node*> closedList; // Nodes already evaluated
 
     openList.push_back(startNode);
 
     while (!openList.empty()) {
-        // Sort by gScore
+        // Sort nodes by lowest gScore (cheapest known cost from start)
         std::sort(openList.begin(), openList.end(), [](Node* a, Node* b) {
             return a->gScore < b->gScore;
             });
 
         Node* currentNode = openList.front();
+
+        // If end node reached, exit early
         if (currentNode == endNode) break;
 
         openList.erase(openList.begin());
         closedList.push_back(currentNode);
 
+        // Evaluate neighbours
         for (Edge& connection : currentNode->connections) {
             Node* targetNode = connection.target;
-            if (std::find(closedList.begin(), closedList.end(), targetNode) == closedList.end()) {
-                float gScore = currentNode->gScore + connection.cost;
 
-                if (std::find(openList.begin(), openList.end(), targetNode) == openList.end()) {
-                    targetNode->gScore = gScore;
-                    targetNode->previous = currentNode;
-                    openList.push_back(targetNode);
-                }
-                else if (gScore < targetNode->gScore) {
-                    targetNode->gScore = gScore;
-                    targetNode->previous = currentNode;
-                }
+            // Skip already evaluated nodes
+            if (std::find(closedList.begin(), closedList.end(), targetNode) != closedList.end())
+                continue;
+
+            float gScore = currentNode->gScore + connection.cost; // Tentative cost to target
+
+            // If target not in open list, or we've found a cheaper path to it
+            if (std::find(openList.begin(), openList.end(), targetNode) == openList.end()) {
+                targetNode->gScore = gScore;
+                targetNode->previous = currentNode;
+                openList.push_back(targetNode);
+            }
+            else if (gScore < targetNode->gScore) {
+                targetNode->gScore = gScore;
+                targetNode->previous = currentNode;
             }
         }
     }
 
-    // Build path by backtracking
+    // Reconstruct the path from end to start
     std::vector<Node*> path;
     Node* currentNode = endNode;
 
     while (currentNode != nullptr) {
-        path.insert(path.begin(), currentNode);
+        path.insert(path.begin(), currentNode); // Insert at beginning to reverse order
         currentNode = currentNode->previous;
     }
 
     return path;
 }
 
+// Draws a visual representation of a node path using lines
 void NodeMap::DrawPath(const std::vector<Node*>& path, Color lineColor)
 {
     for (size_t i = 1; i < path.size(); i++) {
@@ -197,11 +209,13 @@ void NodeMap::DrawPath(const std::vector<Node*>& path, Color lineColor)
     }
 }
 
+// Converts a world position to the closest valid node in the grid
 Node* NodeMap::GetClosestNode(glm::vec2 worldPos)
 {
     int i = static_cast<int>(worldPos.x / m_cellSize);
     int j = static_cast<int>(worldPos.y / m_cellSize);
 
+    // Bounds check
     if (i < 0 || i >= m_width || j < 0 || j >= m_height) {
         std::cerr << "Error: Clicked position is out of bounds." << std::endl;
         return nullptr;

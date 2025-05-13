@@ -1,5 +1,3 @@
-#define RAYGUI_IMPLEMENTATION
-#define RAYGUI_SUPPORT_ICONS
 #include "raylib.h"
 #include "Pathfinding.h"
 #include "NodeMap.h"
@@ -14,13 +12,12 @@ int main(int argc, char* argv[])
 {
     int screenWidth = 800;
     int screenHeight = 450;
-    
-    //Initialise the application window with the above dimensions
-    InitWindow(screenWidth, screenHeight, "Artificial Intelligence For Games - Assessment 2 - Bradley Robertson");
 
-    SetTargetFPS(60);
+    // Initialises the window with specified dimensions and title
+    InitWindow(screenWidth, screenHeight, "DijkstrasSearch Pathfinding - Bradley Robertson");
+    SetTargetFPS(120); // Cap the frame rate to 120 FPS
 
-    // ASCII Art Map
+    // Define a simple ASCII map where '0' is walkable and '1' is a wall
     std::vector<std::string> asciiMap = {
         "000000000000",
         "010111011100",
@@ -32,75 +29,74 @@ int main(int argc, char* argv[])
         "000000000000"
     };
 
-    // Instantiate NodeMap and Initialize
+    // Create and initialise the node map using the ASCII layout
     NodeMap nodeMap;
-    nodeMap.Initialise(asciiMap, 50);
+    nodeMap.Initialise(asciiMap, 50); // 50 pixels per cell
 
-    // Get start and end nodes
+    // Set the initial start and end nodes
     Node* startNode = nodeMap.GetNode(1, 1);
     Node* endNode = nodeMap.GetNode(10, 2);
 
-    // Instantiate PathAgent and set its initial position
+    // Create the pathfinding agent and place it at the start node
     PathAgent agent;
     agent.SetNode(startNode);
-    agent.SetSpeed(64);
+    agent.SetSpeed(64); // Agent movement speed in pixels per second
 
-    // Perform Dijkstra's search
+    // Request the A* path from start to end node
     std::vector<Node*> nodeMapPath = nodeMap.DijkstrasSearch(startNode, endNode);
-
-    // Set the agent's path
     agent.GoToNode(endNode, nodeMap);
 
     float time = (float)GetTime();
     float deltaTime;
-    Color lineColor = WHITE;
+    Color lineColour = WHITE; // Colour used to draw the path line
 
-    // Main application loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
+    // Main application loop - runs until the user closes the window
+    while (!WindowShouldClose())
     {
-        // Calculate deltaTime
+        // Calculate how much time has passed since last frame
         float fTime = (float)GetTime();
         deltaTime = fTime - time;
         time = fTime;
 
-        // Update agent
+        // Update agent movement along the path
         agent.Update(deltaTime);
 
-        // Draw
+        // Start drawing
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(BLACK); // Clear screen to black
 
-        // Draw the map and the paths
+        // Draw the grid, path and the agent
         nodeMap.Draw();
-        nodeMap.DrawPath(nodeMapPath, lineColor);
-        agent.Draw();  // Draw the agent as a yellow circle
+        nodeMap.DrawPath(nodeMapPath, lineColour);
+        agent.Draw();
 
-        // Handle mouse input for setting start and end nodes
-        if (IsMouseButtonPressed(0))  // Left click to set start node
+        // Left mouse click: choose a new start node
+        if (IsMouseButtonPressed(0))
         {
             Vector2 mousePos = GetMousePosition();
             startNode = nodeMap.GetClosestNode(glm::vec2(mousePos.x, mousePos.y));
-            if (startNode != nullptr && endNode != nullptr) {
+            if (startNode && endNode) {
                 nodeMapPath = nodeMap.DijkstrasSearch(startNode, endNode);
-                agent.SetNode(startNode); // Update agent's position to the new start node
-                agent.GoToNode(endNode, nodeMap); // Set the agent's path to the end node
+                agent.SetNode(startNode);
+                agent.GoToNode(endNode, nodeMap);
             }
         }
 
-        if (IsMouseButtonPressed(1))  // Right click to set end node
+        // Right mouse click: choose a new end node
+        if (IsMouseButtonPressed(1))
         {
             Vector2 mousePos = GetMousePosition();
             endNode = nodeMap.GetClosestNode(glm::vec2(mousePos.x, mousePos.y));
-            if (startNode != nullptr && endNode != nullptr) {
+            if (startNode && endNode) {
                 nodeMapPath = nodeMap.DijkstrasSearch(startNode, endNode);
-                agent.GoToNode(endNode, nodeMap); // Update agent's path to the new end node
+                agent.GoToNode(endNode, nodeMap);
             }
         }
 
         EndDrawing();
     }
 
-    CloseWindow(); // Close window and OpenGL context
-
+    // Cleanup and close the application
+    CloseWindow();
     return 0;
 }
